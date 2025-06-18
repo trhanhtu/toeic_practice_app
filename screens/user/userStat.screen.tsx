@@ -141,24 +141,6 @@ const StatScreen = () => {
     },
   ];
 
-  // Get topic stats for bar chart (up to 3 topics)
-  const topicStats = accountStat.topicStats.slice(0, 3);
-  const barChartData = {
-    labels: topicStats.map((t) => {
-      const words = t.topic.name.split(' ');
-      return words.length > 3 ? `${words.slice(0, 3).join(' ')}...` : t.topic.name;
-    }),
-    datasets: [
-      {
-        data: topicStats.map((topic) =>
-          topic.totalCorrect + topic.totalIncorrect > 0
-            ? (topic.totalCorrect / (topic.totalCorrect + topic.totalIncorrect)) * 100
-            : 0
-        ),
-      },
-    ],
-  };
-
   const fetchAccountStat = async () => {
     setError(''); // Reset error state before fetching
     try {
@@ -549,33 +531,6 @@ const StatScreen = () => {
               No answer data available
             </Text>
           )}
-        </View>
-      )}
-
-      {/* Bar Chart */}
-      {index === 3 && accountStat.topicStats.length > 0 && (
-        <View className="bg-white rounded-2xl shadow-lg p-5 mb-7">
-          <Text className="text-xl font-semibold text-center text-gray-700 mb-4">
-            Accuracy by Topic
-          </Text>
-          <BarChart
-            data={barChartData}
-            width={screenWidth - 40}
-            height={500}
-            chartConfig={{
-              backgroundColor: '#f9f9f9',
-              backgroundGradientFrom: '#f9f9f9',
-              backgroundGradientTo: '#f9f9f9',
-              color: () => '#004B8D',
-              barPercentage: 0.5,
-            }}
-            yAxisLabel=""
-            yAxisSuffix="%"
-            style={{
-              borderRadius: 12,
-            }}
-            verticalLabelRotation={30}
-          />
         </View>
       )}
 

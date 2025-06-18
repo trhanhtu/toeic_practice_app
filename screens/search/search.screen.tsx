@@ -23,7 +23,7 @@ const SearchScreen: React.FC = () => {
   const handleSearch = async () => {
     if (selectedCategory === 'course') {
       try {
-        const response = await lectureService.getAllLectures({ pageSize: 1000, info: true, active: true, search: query }); // Call API with search parameters
+        const response = await lectureService.getAllLectures({ pageSize: 10, info: true, active: true, search: query }); // Call API with search parameters
         const result = await response.data; // Get data from API
 
         setResults(result); // Update search results
