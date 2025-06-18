@@ -3,8 +3,8 @@ import { View, TextInput, FlatList, Text, TouchableOpacity } from 'react-native'
 import { Lecture, Test } from '@/types/global.type';
 import { AntDesign, FontAwesome6 } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { getAllTests } from '@/services/test.service';
-import { getAllLectures } from '@/services/lecture.service';
+// import { getAllTests } from '@/services/test.service';
+import lectureService from '@/services/lecture.service';
 
 // type Category = 'test' | 'course' | 'user';
 type Category = 'course';
@@ -23,10 +23,10 @@ const SearchScreen: React.FC = () => {
   const handleSearch = async () => {
     if (selectedCategory === 'course') {
       try {
-        const response = await getAllLectures({ pageSize: '1000', info: true, active: true, search: query }); // Call API with search parameters
-        const result = await response.json(); // Get data from API
+        const response = await lectureService.getAllLectures({ pageSize: 1000, info: true, active: true, search: query }); // Call API with search parameters
+        const result = await response.data; // Get data from API
 
-        setResults(result.data.result); // Update search results
+        setResults(result); // Update search results
       } catch (error) {
         console.error('Error fetching lectures:', error);
       }
