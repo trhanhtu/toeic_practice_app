@@ -51,36 +51,10 @@ export default function TestListScreen() {
     }
   };
 
-  // Save a test ID to completed tests
-  const saveCompletedTest = async (testId: string) => {
-    try {
-      // Get current completed tests
-      const testsData = await AsyncStorage.getItem(COMPLETED_TESTS_KEY);
-      let completedTests: string[] = [];
-
-      if (testsData) {
-        completedTests = JSON.parse(testsData);
-      }
-
-      // Add new test ID if not already in the list
-      if (!completedTests.includes(testId)) {
-        completedTests.push(testId);
-        await AsyncStorage.setItem(COMPLETED_TESTS_KEY, JSON.stringify(completedTests));
-
-        // Update local state
-        setUserTestIds(new Set(completedTests));
-      }
-    } catch (error) {
-      console.error('Error saving completed test:', error);
-    }
-  };
-
   const handlePress = async (testId: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
-    // Mark this test as completed when the user starts it
-    await saveCompletedTest(testId);
-
+    // Chỉ navigate đến màn hình testInfo, không lưu completed test ở đây nữa
     await router.push({
       pathname: '/(main)/testInfo',
       params: { testId },
@@ -125,10 +99,9 @@ export default function TestListScreen() {
     fetchTests();
   }, [categoryId]);
 
-  // On focus
+  // On focus - Load completed tests để hiển thị status
   useFocusEffect(
     useCallback(() => {
-      // Load completed tests from AsyncStorage when screen is focused
       loadCompletedTests();
     }, [user])
   );
@@ -205,7 +178,7 @@ export default function TestListScreen() {
                       {isCompleted && (
                         <View className="flex-row items-center bg-green-500 rounded-full px-2 py-0.5 ml-2">
                           <Ionicons name="checkmark-circle" size={14} color="#fff" />
-                          <Text className="text-white text-xs font-medium ml-1">Completed</Text>
+                          <Text className="text-white text-xs font-medium ml-1">Done</Text>
                         </View>
                       )}
                     </View>

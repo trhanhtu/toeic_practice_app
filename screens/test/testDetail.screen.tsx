@@ -18,23 +18,24 @@ import { useDraft } from "@/hooks/useDraft";
 export default function TestDetailScreen() {
   const { partNum, questionId, testId } = useLocalSearchParams();
   const router = useRouter();
-  const { 
-    currentQuestion, 
-    currentIndex, 
-    questions, 
+  const {
+    currentQuestion,
+    currentIndex,
+    questions,
+    totalQuestions, // Sử dụng từ context thay vì hard-code
     setQuestions,
-    goToNextQuestion, 
+    goToNextQuestion,
     goToPreviousQuestion,
     setCurrentQuestionIndex
   } = useQuestions();
 
-  const { 
-    saveDraft, 
-    loadDraft, 
-    deleteDraft, 
+  const {
+    saveDraft,
+    loadDraft,
+    deleteDraft,
     isDraftExists,
     loading: draftLoading,
-    error: draftError 
+    error: draftError
   } = useDraft();
 
   const [loading, setLoading] = useState<boolean>(true);
@@ -50,7 +51,7 @@ export default function TestDetailScreen() {
   useEffect(() => {
     if (questions.length > 0 && !hasDraftLoaded && !isInitialized) {
       const initialAnswers: Record<string, string> = {};
-      
+
       questions.forEach(question => {
         // Handle questions with subquestions
         if (question.subQuestions && Array.isArray(question.subQuestions) && question.subQuestions.length > 0) {
@@ -64,7 +65,7 @@ export default function TestDetailScreen() {
           initialAnswers[question.id] = "";
         }
       });
-      
+
       setSubmittedAnswers(initialAnswers);
       setIsInitialized(true);
     }
@@ -76,16 +77,16 @@ export default function TestDetailScreen() {
       if ((testId || partNum) && questions.length > 0 && !hasDraftLoaded) {
         try {
           const draft = await loadDraft(
-            testId as string || 'part_test', 
+            testId as string || 'part_test',
             partNum as string
           );
-          
+
           if (draft) {
             setSubmittedAnswers(draft.submittedAnswers);
             setCurrentQuestionIndex(draft.currentQuestionIndex);
             setHasDraftLoaded(true);
             setIsInitialized(true);
-            
+
             // Show draft loaded notification
             Alert.alert(
               "Draft Loaded",
@@ -109,14 +110,12 @@ export default function TestDetailScreen() {
   // Handle back button press and exit confirmation
   const handleBackPress = useCallback(() => {
     if (testCompleted) {
-      return false; // Allow default back behavior if test is completed
+      return false;
     }
 
-    // Check if user has answered any questions
     const answeredCount = Object.values(submittedAnswers).filter(answer => answer !== "").length;
-    
+
     if (answeredCount > 0) {
-      // Show save draft confirmation
       Alert.alert(
         "Save Progress?",
         `You have answered ${answeredCount} questions. Would you like to save your progress before leaving?`,
@@ -124,7 +123,6 @@ export default function TestDetailScreen() {
           {
             text: "Don't Save",
             onPress: () => {
-              // Delete any existing draft and exit
               if (testId || partNum) {
                 deleteDraft(
                   testId as string || 'part_test',
@@ -143,22 +141,21 @@ export default function TestDetailScreen() {
             text: "Save & Exit",
             onPress: async () => {
               try {
-                const totalQuestions = 200;
                 await saveDraft({
                   testId: testId as string || 'part_test',
                   partNum: partNum as string,
                   submittedAnswers,
                   currentQuestionIndex: currentIndex,
-                  totalQuestions,
+                  totalQuestions, // Sử dụng từ context
                   answeredCount
                 });
-                
+
                 Alert.alert(
                   "Progress Saved",
                   "Your progress has been saved successfully.",
-                  [{ 
-                    text: "OK", 
-                    onPress: () => router.back() 
+                  [{
+                    text: "OK",
+                    onPress: () => router.back()
                   }]
                 );
               } catch (err) {
@@ -177,12 +174,12 @@ export default function TestDetailScreen() {
         ]
       );
     } else {
-      // No answers given, just go back
       router.back();
     }
-    
-    return true; // Prevent default back behavior
-  }, [testCompleted, submittedAnswers, testId, partNum, currentIndex, saveDraft, deleteDraft, router]);
+
+    return true;
+  }, [testCompleted, submittedAnswers, testId, partNum, currentIndex, totalQuestions, saveDraft, deleteDraft, router]);
+
 
   // Set up back handler
   useFocusEffect(
@@ -217,14 +214,14 @@ export default function TestDetailScreen() {
   const fetchQuestionsByPart = async (partNumber: string) => {
     setLoading(true);
     setError(null);
-    
+
     try {
       const response = await questionService.getAllQuestions({
         pageSize: 999, // Fetch all questions at once
         partNum: partNumber,
         current: 1,
       });
-      
+
       if (response.data && response.data.length > 0) {
         setQuestions(response.data);
       } else {
@@ -242,10 +239,10 @@ export default function TestDetailScreen() {
   const fetchQuestionsByTest = async (testId: string) => {
     setLoading(true);
     setError(null);
-    
+
     try {
       const response = await testService.getTestQuestions(testId);
-      
+
       if (response.data && response.data.listMultipleChoiceQuestions.length > 0) {
         setQuestions(response.data.listMultipleChoiceQuestions);
       } else {
@@ -261,9 +258,9 @@ export default function TestDetailScreen() {
 
   const handleAnswerSelection = (qid: string, answer: string) => {
     if (!currentQuestion) return;
-    
+
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    
+
     // Store the answer
     setSubmittedAnswers(prev => ({
       ...prev,
@@ -283,11 +280,11 @@ export default function TestDetailScreen() {
 
   const handleSubmitTest = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    
+
     // Check if all questions are answered
     const answeredCount = Object.values(submittedAnswers).filter(answer => answer !== "").length;
-    const totalQuestions = questions.length;
-    
+    const progressPercentage = totalQuestions > 0 ? (answeredCount / totalQuestions) * 100 : 0;
+
     if (answeredCount < totalQuestions) {
       // Show confirmation alert if not all questions are answered
       Alert.alert(
@@ -310,16 +307,16 @@ export default function TestDetailScreen() {
       processSubmitTest();
     }
   };
-  
+
   const processSubmitTest = async () => {
     console.log("Submitting test:", { testId });
     setLoadingText("Grading test");
     setLoading(true);
-    
+
     try {
       // Build consistent answers array for all questions (regular and subquestions)
       const answers: AnswerPair[] = [];
-      
+
       // Process all questions 
       questions.forEach((question) => {
         // Check if this question has subquestions
@@ -345,8 +342,8 @@ export default function TestDetailScreen() {
       });
 
       // Log the actual payload for debugging
-      console.log("Submitting:", JSON.stringify({ 
-        testId, 
+      console.log("Submitting:", JSON.stringify({
+        testId,
         userAnswer: answers,
         parts: '1234567',
         type: 'fulltest',
@@ -365,7 +362,7 @@ export default function TestDetailScreen() {
       // Check for successful response
       if (submitResponse.success) {
         setTestCompleted(true);
-        
+
         // Delete draft after successful submission
         try {
           await deleteDraft(
@@ -377,9 +374,9 @@ export default function TestDetailScreen() {
         }
 
         Alert.alert("Success", "Test submitted successfully");
-        
+
         const resultData = submitResponse.data;
-        
+
         // Navigate to result page
         await router.push({
           pathname: '/(main)/result',
@@ -401,7 +398,7 @@ export default function TestDetailScreen() {
   const isQuestionAnswered = (question) => {
     if (question.subQuestions && Array.isArray(question.subQuestions) && question.subQuestions.length > 0) {
       // For questions with subquestions, check if all subquestions are answered
-      return question.subQuestions.every(subQuestion => 
+      return question.subQuestions.every(subQuestion =>
         subQuestion.id && submittedAnswers[subQuestion.id] !== "");
     } else {
       // For regular questions
@@ -419,17 +416,16 @@ export default function TestDetailScreen() {
   const handleManualSaveDraft = async () => {
     try {
       const answeredCount = Object.values(submittedAnswers).filter(answer => answer !== "").length;
-      const totalQuestions = 200;
-      
+
       await saveDraft({
         testId: testId as string || 'part_test',
         partNum: partNum as string,
         submittedAnswers,
         currentQuestionIndex: currentIndex,
-        totalQuestions,
+        totalQuestions, // Sử dụng từ context
         answeredCount
       });
-      
+
       Alert.alert(
         "Progress Saved",
         `Your progress has been saved successfully. You have answered ${answeredCount} out of ${totalQuestions} questions.`,
@@ -464,7 +460,7 @@ export default function TestDetailScreen() {
         <Ionicons name="alert-circle-outline" size={60} color="#ef4444" />
         <Text className="text-xl font-semibold text-gray-800 mt-4">Error Loading Questions</Text>
         <Text className="text-base text-gray-600 text-center mx-8 mt-2">{error}</Text>
-        <TouchableOpacity 
+        <TouchableOpacity
           className="mt-6 bg-blue-600 px-6 py-3 rounded-lg"
           onPress={() => {
             if (partNum) fetchQuestionsByPart(partNum as string);
@@ -499,7 +495,7 @@ export default function TestDetailScreen() {
         }
       });
       return filteredAnswers;
-    } 
+    }
     // For regular questions
     else {
       const questionId = currentQuestion.id || '';
@@ -509,7 +505,6 @@ export default function TestDetailScreen() {
 
   // Calculate completion percentage - consider only non-empty answers
   const answeredCount = Object.values(submittedAnswers).filter(answer => answer !== "").length;
-  const totalQuestions = 200;
   const progressPercentage = (answeredCount / 200) * 100;
 
   // Get filtered answers for the current question only
@@ -535,64 +530,60 @@ export default function TestDetailScreen() {
                 <Text className="text-gray-600">{answeredCount}/{totalQuestions} questions</Text>
               </View>
               <View className="h-2 bg-gray-200 rounded-full">
-                <View 
-                  className="h-2 bg-blue-600 rounded-full" 
-                  style={{ width: `${progressPercentage}%` }} 
+                <View
+                  className="h-2 bg-blue-600 rounded-full"
+                  style={{ width: `${progressPercentage}%` }}
                 />
               </View>
             </View>
-            
+
             {/* Question counter */}
             <View className="flex-row justify-between items-center mb-3">
               <View className="flex-row items-center">
                 <Ionicons name="document-text-outline" size={16} color="#4B5563" />
                 <Text className="ml-1 text-gray-600">
-                  Question {currentIndex + 1} of 200
+                  Question {currentIndex + 1} of {questions.length}
                 </Text>
               </View>
               <Text className="text-gray-500">Part {currentQuestion.partNum}</Text>
             </View>
-            
+
             {/* Navigation buttons */}
             <View className="flex-row justify-center space-x-2 gap-2 mb-3">
               <TouchableOpacity
                 onPress={handlePrevious}
                 disabled={currentIndex === 0}
-                className={`flex-1 flex-row justify-center items-center py-2 rounded-lg ${
-                  currentIndex === 0 ? 'bg-gray-200' : 'bg-gray-300'
-                }`}
+                className={`flex-1 flex-row justify-center items-center py-2 rounded-lg ${currentIndex === 0 ? 'bg-gray-200' : 'bg-gray-300'
+                  }`}
               >
-                <Ionicons 
-                  name="chevron-back" 
-                  size={18} 
-                  color={currentIndex === 0 ? "#9CA3AF" : "#4B5563"} 
+                <Ionicons
+                  name="chevron-back"
+                  size={18}
+                  color={currentIndex === 0 ? "#9CA3AF" : "#4B5563"}
                 />
-                <Text className={`ml-1 font-medium ${
-                  currentIndex === 0 ? 'text-gray-400' : 'text-gray-700'
-                }`}>
+                <Text className={`ml-1 font-medium ${currentIndex === 0 ? 'text-gray-400' : 'text-gray-700'
+                  }`}>
                   Previous
                 </Text>
               </TouchableOpacity>
-              
+
               <TouchableOpacity
                 onPress={handleNext}
                 disabled={currentIndex === questions.length - 1}
-                className={`flex-1 flex-row justify-center items-center py-2 rounded-lg ${
-                  currentIndex === questions.length - 1 ? 'bg-gray-200' : 'bg-gray-300'
-                }`}
+                className={`flex-1 flex-row justify-center items-center py-2 rounded-lg ${currentIndex === questions.length - 1 ? 'bg-gray-200' : 'bg-gray-300'
+                  }`}
               >
-                <Text className={`mr-1 font-medium ${
-                  currentIndex === questions.length - 1 ? 'text-gray-400' : 'text-gray-700'
-                }`}>
+                <Text className={`mr-1 font-medium ${currentIndex === questions.length - 1 ? 'text-gray-400' : 'text-gray-700'
+                  }`}>
                   Next
                 </Text>
-                <Ionicons 
-                  name="chevron-forward" 
+                <Ionicons
+                  name="chevron-forward"
                   size={18}
-                  color={currentIndex === questions.length - 1 ? "#9CA3AF" : "#4B5563"} 
+                  color={currentIndex === questions.length - 1 ? "#9CA3AF" : "#4B5563"}
                 />
               </TouchableOpacity>
-              
+
               {/* Questions list button */}
               <TouchableOpacity
                 onPress={() => setQuestionsModalVisible(true)}
@@ -653,20 +644,20 @@ export default function TestDetailScreen() {
                   <Ionicons name="close" size={24} color="#4B5563" />
                 </TouchableOpacity>
               </View>
-              
+
               <View className="mb-4 bg-gray-100 p-3 rounded-lg">
                 <View className="flex-row justify-between mb-2">
                   <Text className="text-gray-700">Completed:</Text>
                   <Text className="font-medium text-blue-600">{answeredCount}/{totalQuestions}</Text>
                 </View>
                 <View className="h-2 bg-gray-200 rounded-full">
-                  <View 
-                    className="h-2 bg-blue-600 rounded-full" 
-                    style={{ width: `${progressPercentage}%` }} 
+                  <View
+                    className="h-2 bg-blue-600 rounded-full"
+                    style={{ width: `${progressPercentage}%` }}
                   />
                 </View>
               </View>
-              
+
               {/* Use FlatList with explicit height to avoid layout issues */}
               <FlatList
                 data={questions}
@@ -676,23 +667,21 @@ export default function TestDetailScreen() {
                 renderItem={({ item, index }) => {
                   const isAnswered = isQuestionAnswered(item);
                   const isCurrentQuestion = index === currentIndex;
-                  
+
                   return (
                     <TouchableOpacity
                       onPress={() => navigateToQuestion(index)}
-                      className={`flex-row items-center p-3 mb-2 rounded-lg ${
-                        isCurrentQuestion ? 'bg-blue-100 border border-blue-300' : 'bg-gray-50'
-                      }`}
+                      className={`flex-row items-center p-3 mb-2 rounded-lg ${isCurrentQuestion ? 'bg-blue-100 border border-blue-300' : 'bg-gray-50'
+                        }`}
                     >
-                      <View className={`w-8 h-8 rounded-full mr-3 items-center justify-center ${
-                        isAnswered ? 'bg-green-500' : 'bg-gray-300'
-                      }`}>
+                      <View className={`w-8 h-8 rounded-full mr-3 items-center justify-center ${isAnswered ? 'bg-green-500' : 'bg-gray-300'
+                        }`}>
                         <Text className="text-white font-medium">{index + 1}</Text>
                       </View>
                       <View className="flex-1">
                         <Text className="text-gray-800 font-medium" numberOfLines={1}>
-                          {item.question ? 
-                            (item.question.length > 40 ? item.question.substring(0, 40) + '...' : item.question) : 
+                          {item.question ?
+                            (item.question.length > 40 ? item.question.substring(0, 40) + '...' : item.question) :
                             `Question ${index + 1}`}
                         </Text>
                         <View className="flex-row items-center mt-1">
@@ -710,16 +699,16 @@ export default function TestDetailScreen() {
                           )}
                         </View>
                       </View>
-                      <Ionicons 
-                        name="chevron-forward" 
-                        size={18} 
-                        color="#4B5563" 
+                      <Ionicons
+                        name="chevron-forward"
+                        size={18}
+                        color="#4B5563"
                       />
                     </TouchableOpacity>
                   );
                 }}
               />
-              
+
               <TouchableOpacity
                 onPress={() => setQuestionsModalVisible(false)}
                 className="py-3 bg-blue-600 rounded-lg items-center mt-auto"
@@ -735,7 +724,7 @@ export default function TestDetailScreen() {
         <FloatingChatButton questionId={currentQuestion.id} />
       ) : null}
       {/* Floating dictionary */}
-        <FloatingDictionary />
+      <FloatingDictionary />
     </SafeAreaView>
   );
 }

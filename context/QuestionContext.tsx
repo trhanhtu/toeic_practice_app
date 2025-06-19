@@ -1,10 +1,11 @@
-import React, { createContext, useState, useContext, ReactNode } from 'react';
+import React, { createContext, useState, useContext, ReactNode, useMemo } from 'react';
 import { Question } from '@/types/global.type';
 
 interface QuestionsContextType {
   questions: Question[];
   currentQuestion: Question | null;
   currentIndex: number;
+  totalQuestions: number; // Tổng số câu hỏi thực tế (bao gồm subquestions)
   setQuestions: (questions: Question[]) => void;
   goToNextQuestion: () => void;
   goToPreviousQuestion: () => void;
@@ -29,7 +30,20 @@ export const QuestionsProvider: React.FC<QuestionsProviderProps> = ({ children }
   const [questions, setQuestionsState] = useState<Question[]>([]);
   const [currentIndex, setCurrentIndex] = useState<number>(0);
 
-  const currentQuestion = questions.length > 0 && currentIndex < questions.length
+  // Tính tổng số câu hỏi thực tế (bao gồm subquestions)
+  const totalQuestions = useMemo(() => {
+    let count = 0;
+    questions.forEach(question => {
+      if (question.subQuestions && Array.isArray(question.subQuestions) && question.subQuestions.length > 0) {
+        count += question.subQuestions.length; // Đếm số subquestions
+      } else {
+        count += 1; // Câu hỏi thường
+      }
+    });
+    return count;
+  }, [questions]);
+
+  const currentQuestion = questions.length > 0 && currentIndex >= 0 && currentIndex < questions.length
     ? questions[currentIndex]
     : null;
 
@@ -40,28 +54,13 @@ export const QuestionsProvider: React.FC<QuestionsProviderProps> = ({ children }
 
   const goToNextQuestion = () => {
     if (currentIndex < questions.length - 1) {
-      // Check if current question has subquestions
-      if (currentQuestion?.subQuestions && currentQuestion.subQuestions.length > 0) {
-        // Skip over subquestions by adding their length to the current index
-        setCurrentIndex(currentIndex + currentQuestion.subQuestions.length);
-      } else {
-        // Normal increment if no subquestions
-        setCurrentIndex(currentIndex + 1);
-      }
+      setCurrentIndex(currentIndex + 1);
     }
   };
 
   const goToPreviousQuestion = () => {
     if (currentIndex > 0) {
-      // Check if previous question has subquestions
-      const prevIndex = currentIndex - 1;
-      if (prevIndex >= 0 && questions[prevIndex]?.subQuestions && questions[prevIndex].subQuestions.length > 0) {
-        // Skip over subquestions by subtracting their length from the current index
-        setCurrentIndex(currentIndex - questions[prevIndex].subQuestions.length);
-      } else {
-        // Normal decrement if no subquestions
-        setCurrentIndex(currentIndex - 1);
-      }
+      setCurrentIndex(currentIndex - 1);
     }
   };
 
@@ -75,6 +74,7 @@ export const QuestionsProvider: React.FC<QuestionsProviderProps> = ({ children }
     questions,
     currentQuestion,
     currentIndex,
+    totalQuestions,
     setQuestions,
     goToNextQuestion,
     goToPreviousQuestion,

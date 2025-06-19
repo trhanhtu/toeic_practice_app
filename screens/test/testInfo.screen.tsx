@@ -1,7 +1,7 @@
 import CommentSystem from '@/components/CommentSession';
 import testService from '@/services/test.service';
 import { BaseObject, CommentTargetType } from '@/types/global.type';
-import { Ionicons } from '@expo/vector-icons';
+import { Feather, Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
 import * as Haptics from 'expo-haptics';
@@ -10,6 +10,8 @@ import LottieView from 'lottie-react-native';
 import React, { useCallback, useState } from 'react';
 import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+
+const COMPLETED_TESTS_KEY = 'completed_tests';
 
 // TestInfo interface as provided
 export interface TestInfo extends BaseObject {
@@ -32,6 +34,9 @@ interface TestDetail {
 }
 
 // Interface for route params
+interface TestInfoParams {
+  testId: string;
+}
 
 export default function TestInfoScreen(): JSX.Element {
   const params = useLocalSearchParams<TestInfoParams>();
@@ -48,28 +53,37 @@ export default function TestInfoScreen(): JSX.Element {
   // Function to check if test has been completed before
   const checkTestCompletion = async (id: string): Promise<void> => {
     try {
-      const completedTests = await AsyncStorage.getItem('completedTests');
-      if (completedTests) {
-        const tests: string[] = JSON.parse(completedTests);
-        setIsCompleted(tests.includes(id));
+      const testsData = await AsyncStorage.getItem(COMPLETED_TESTS_KEY);
+      if (testsData) {
+        const parsedTestIds = JSON.parse(testsData);
+        setIsCompleted(parsedTestIds.includes(id));
       }
     } catch (err) {
       console.error('Error checking test completion:', err);
     }
   };
 
-  // Function to save completed test
+  // Function to save completed test - moved from TestListScreen
   const saveCompletedTest = async (id: string): Promise<void> => {
     try {
-      const completedTests = await AsyncStorage.getItem('completedTests');
-      let tests: string[] = completedTests ? JSON.parse(completedTests) : [];
+      // Get current completed tests
+      const testsData = await AsyncStorage.getItem(COMPLETED_TESTS_KEY);
+      let completedTests: string[] = [];
 
-      if (!tests.includes(id)) {
-        tests.push(id);
-        await AsyncStorage.setItem('completedTests', JSON.stringify(tests));
+      if (testsData) {
+        completedTests = JSON.parse(testsData);
       }
-    } catch (err) {
-      console.error('Error saving completed test:', err);
+
+      // Add new test ID if not already in the list
+      if (!completedTests.includes(id)) {
+        completedTests.push(id);
+        await AsyncStorage.setItem(COMPLETED_TESTS_KEY, JSON.stringify(completedTests));
+
+        // Update local state
+        setIsCompleted(true);
+      }
+    } catch (error) {
+      console.error('Error saving completed test:', error);
     }
   };
 
@@ -130,7 +144,7 @@ export default function TestInfoScreen(): JSX.Element {
     }
   };
 
-  // Handle starting the test
+  // Handle starting the test - Now saves completed test here
   const handleStartTest = async (): Promise<void> => {
     if (!testId) return;
 
@@ -233,11 +247,10 @@ export default function TestInfoScreen(): JSX.Element {
             {isCompleted && (
               <View className="bg-emerald-500 py-1 px-2 rounded flex-row items-center gap-1">
                 <Ionicons name="checkmark-circle" size={14} color="#ffffff" />
-                <Text className="text-xs font-semibold text-white">COMPLETED</Text>
+                <Text className="text-xs font-semibold text-white">DONE</Text>
               </View>
             )}
           </View>
-
 
           <View className="flex-row justify-around pt-2 border-t border-gray-100">
             <View className="items-center">
@@ -284,8 +297,8 @@ export default function TestInfoScreen(): JSX.Element {
           className={`${isCompleted ? 'bg-emerald-600' : 'bg-blue-500'} rounded-xl py-4 mb-6 flex-row justify-center items-center gap-2 shadow-sm`}
           onPress={handleGetDraft}
         >
-          <Ionicons 
-            name={isCompleted ? "refresh" : "play-circle-outline"} 
+          <Feather 
+            name={"save"} 
             size={20} 
             color="#ffffff" 
           />
