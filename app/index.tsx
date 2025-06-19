@@ -1,11 +1,11 @@
 // Ẩn log khi không phải môi trường DEV
-// if (__DEV__) {
-//   console.log = () => {};
-//   console.warn = () => {};
-//   console.error = () => {};
-//   console.info = () => {};
-//   console.debug = () => {};
-// }
+if (__DEV__) {
+  // console.log = () => {};
+  console.warn = () => {};
+  console.error = () => {};
+  console.info = () => {};
+  console.debug = () => {};
+}
 
 import Loader from "@/components/Loader";
 import AsyncStorage from "@react-native-async-storage/async-storage";

@@ -1,13 +1,13 @@
-import Loader from "@/components/Loader";
 import useAuth from "@/hooks/useAuth";
+import lectureService from "@/services/lecture.service";
 import { Lecture } from "@/types/global.type";
+import { convertToVietnamTime } from "@/utils/TimeFormat";
+import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
-import { Dimensions, Image, ScrollView, Text, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { Ionicons } from "@expo/vector-icons";
+import { Dimensions, ScrollView, Text, View } from "react-native";
 import RenderHTML from "react-native-render-html";
-import lectureService from "@/services/lecture.service";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function LectureScreen() {
 
@@ -47,7 +47,7 @@ export default function LectureScreen() {
                             <View className="relative">
                                 <Text className="text-2xl font-bold text-white">{lecture?.name}</Text>
                                 <Text className="text-sm text-white mt-2">
-                                    <Ionicons name="calendar-outline" size={16} color="#E5E7EB" /> Created at: {new Date(lecture?.createdAt as Date).toLocaleString()}
+                                    <Ionicons name="calendar-outline" size={16} color="#E5E7EB" /> Created at: {convertToVietnamTime(lecture?.createdAt?.toString() || Date.now(), "short")}
                                 </Text>
                             </View>
                         </View>
@@ -60,7 +60,7 @@ export default function LectureScreen() {
                                 tagsStyles={{
                                     body: { fontSize: 16, lineHeight: 24, overflow: 'hidden' }, // Default font size and line spacing
                                     p: { fontSize: 16, lineHeight: 24 },
-                                    span: {fontSize: 16, lineHeight: 24},
+                                    span: { fontSize: 16, lineHeight: 24 },
                                     h1: { fontSize: 20, fontWeight: 'bold' },
                                     h2: { fontSize: 18, fontWeight: 'bold' },
                                     h3: { fontSize: 16, fontWeight: 'bold' },
